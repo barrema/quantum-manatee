@@ -2,127 +2,165 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>time for lab?</title>
+
 <style>
-/* ——— SAME CSS AS BEFORE ——— */
-[CSS REMOVED HERE FOR BREVITY — I CAN INCLUDE FULL CSS AGAIN IF YOU WANT]
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #111827;
+  color: #e5e7eb;
+  text-align: center;
+  padding: 20px;
+}
+
+h1 {
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.clock {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  border: 4px solid #e5e7eb;
+  border-radius: 50%;
+  margin: 20px auto;
+  background: #0f172a;
+}
+
+.tick {
+  position: absolute;
+  width: 2px;
+  height: 12px;
+  background: #e5e7eb;
+  left: 50%;
+  top: 0;
+  transform-origin: center 150px;
+}
+
+.hand {
+  position: absolute;
+  left: 50%;
+  bottom: 150px;
+  transform-origin: bottom center;
+  background: #38bdf8;
+  border-radius: 3px;
+}
+
+.hand.hour {
+  width: 8px;
+  height: 70px;
+}
+
+.hand.minute {
+  width: 5px;
+  height: 100px;
+}
+
+#secret {
+  display: none;
+  margin-top: 20px;
+  padding: 12px;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  text-align: left;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  white-space: pre-wrap;
+}
 </style>
 </head>
 <body>
-<main class="wrap">
+
 <h1>time for lab?</h1>
-<div class="sub">Drag the hands to set the time. Hint: some moments unlock what’s hidden.</div>
 
 <div id="clock" class="clock">
-  <div class="pivot"></div>
-  <div id="hour-hand" class="hand hour" tabindex="0"></div>
-  <div id="minute-hand" class="hand minute" tabindex="0"></div>
+  <div id="hour" class="hand hour"></div>
+  <div id="minute" class="hand minute"></div>
 </div>
 
-<div id="secret">
-  <h2>Revealed text</h2>
-  <div id="cipher" class="cipher"></div>
-</div>
-
-<div class="footer">This page is a single-file GitHub Pages site.</div>
-</main>
+<div id="secret"></div>
 
 <script>
-(function() {
-  const clock = document.getElementById('clock');
-  const hourHand = document.getElementById('hour-hand');
-  const minuteHand = document.getElementById('minute-hand');
-  const secret = document.getElementById('secret');
-  const cipherEl = document.getElementById('cipher');
+/* SAFARI-SAFE CLOCK */
 
-  /* Make clock ticks */
-  for (let i = 0; i < 60; i++) {
-    const t = document.createElement('div');
-    t.className = 'tick' + (i % 5 === 0 ? ' major' : '');
-    t.style.transform = `translate(-50%, -100%) rotate(${i * 6}deg)`;
-    clock.appendChild(t);
+// Build ticks
+const clock = document.getElementById("clock");
+for (let i = 0; i < 12; i++) {
+  const t = document.createElement("div");
+  t.className = "tick";
+  t.style.transform = "translateX(-50%) rotate(" + (i * 30) + "deg)";
+  clock.appendChild(t);
+}
+
+const hourHand = document.getElementById("hour");
+const minuteHand = document.getElementById("minute");
+
+let dragging = null;
+
+function getAngle(ev) {
+  const r = clock.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+  const x = ev.clientX - cx;
+  const y = ev.clientY - cy;
+  const ang = Math.atan2(x, -y) * 180 / Math.PI;
+  return (ang + 360) % 360;
+}
+
+function snap(v, step) {
+  return Math.round(v / step) * step;
+}
+
+hourHand.addEventListener("pointerdown", function(ev) {
+  dragging = "hour";
+  if (ev.target.setPointerCapture) ev.target.setPointerCapture(ev.pointerId);
+});
+
+minuteHand.addEventListener("pointerdown", function(ev) {
+  dragging = "minute";
+  if (ev.target.setPointerCapture) ev.target.setPointerCapture(ev.pointerId);
+});
+
+window.addEventListener("pointermove", function(ev) {
+  if (!dragging) return;
+  const ang = getAngle(ev);
+  if (dragging === "hour") {
+    const snapped = snap(ang, 30);
+    hourHand.style.transform = "translateX(-50%) rotate(" + snapped + "deg)";
+    hourHand.dataset.angle = snapped;
+  } else {
+    const snapped = snap(ang, 6);
+    minuteHand.style.transform = "translateX(-50%) rotate(" + snapped + "deg)";
+    minuteHand.dataset.angle = snapped;
   }
+});
 
-  let hourAngle = 0;
-  let minuteAngle = 0;
-  let dragging = null;
+window.addEventListener("pointerup", function() {
+  dragging = null;
+  checkSolved();
+});
 
-  const setHourAngle = deg => {
-    hourAngle = ((deg % 360) + 360) % 360;
-    hourHand.style.transform = `translate(-50%, -100%) rotate(${hourAngle}deg)`;
-  };
-  const setMinuteAngle = deg => {
-    minuteAngle = ((deg % 360) + 360) % 360;
-    minuteHand.style.transform = `translate(-50%, -100%) rotate(${minuteAngle}deg)`;
-  };
+function checkSolved() {
+  const h = parseInt(hourHand.dataset.angle || "0");
+  const m = parseInt(minuteHand.dataset.angle || "0");
 
-  setHourAngle(0);
-  setMinuteAngle(0);
-
-  function getAngle(ev) {
-    const rect = clock.getBoundingClientRect();
-    const cx = rect.left + rect.width/2;
-    const cy = rect.top + rect.height/2;
-    const x = ev.clientX - cx;
-    const y = ev.clientY - cy;
-    const ang = Math.atan2(x, -y) * 180 / Math.PI;
-    return (ang + 360) % 360;
+  if (h === 30 && m === 0) {
+    reveal();
   }
+}
 
-  function snap(v, step) {
-    return Math.round(v / step) * step;
-  }
-
-  function onPointerDown(which) {
-    return function(ev) {
-      ev.preventDefault();
-      dragging = which;
-
-      // FIXED FOR GITHUB PAGES:
-      if (ev.target.setPointerCapture) {
-        ev.target.setPointerCapture(ev.pointerId);
-      }
-
-      (which === 'hour' ? hourHand : minuteHand)
-        .classList.add('dragging');
-    }
-  }
-
-  function onPointerMove(ev) {
-    if (!dragging) return;
-    const ang = getAngle(ev);
-    if (dragging === 'minute') setMinuteAngle(snap(ang,6));
-    else setHourAngle(snap(ang,30));
-  }
-
-  function onPointerUp(ev) {
-    if (!dragging) return;
-    (dragging === 'hour' ? hourHand : minuteHand)
-      .classList.remove('dragging');
-    dragging = null;
-    checkSolved();
-  }
-
-  hourHand.addEventListener('pointerdown', onPointerDown('hour'));
-  minuteHand.addEventListener('pointerdown', onPointerDown('minute'));
-  window.addEventListener('pointermove', onPointerMove);
-  window.addEventListener('pointerup', onPointerUp);
-
-  function checkSolved() {
-    if ((minuteAngle % 360) === 0 && (hourAngle % 360) === 30) {
-      reveal();
-    }
-  }
-
-  function reveal() {
-    if (secret.style.display === 'block') return;
-    cipherEl.textContent = CIPHERTEXT;
-    secret.style.display = 'block';
-  }
-
-  const CIPHERTEXT = `XHVELLQ THFYLOZ ... FEWZBNP`;
-})();
+function reveal() {
+  const box = document.getElementById("secret");
+  box.style.display = "block";
+  box.textContent =
+`XHVELLQ THFYLOZ XHVEOID HFCZVRE ETFYAOB SFKSLUZ ESJFTIZ KGIPFCM FIEPATT IKZYKOR JUIYPTG VEKSHTN PEEOLDU RTFLDAX PUEEPLQ ZEEXLMA VYJEVPB IDSZAHQ VIERDIF LIKDAUP INKDZTD IADPKPM WTVGLRK LOLCPNZ SIJJIUD WTJOVOD WSCLTMU RGCLBGT XEIPJHA MNXDVMQ SNVLSWM CSTLSLU RGFFATA WODPVNQ ILJPPNF LEDTKDX IOWLSLF LAKDOIR XIERSIR ITYPVLP THFYLSQ IMVOHLY SSKPTBM VRRDZEP XOVIPSF ERVWPCX IFKMLHU RDSJZOY IPIPCIA YSMPYSU SNFQAHQ FUZWKIZ KIKSHDZ IVVCYUZ KIELSLF LEPPHRE MDNLSKQ HBPTASA AHVYAHQ FECWZUP HEEWFST ETKPYEP XHVXPDY SRETUGC YIVEPAX QOJEKIP RTIPJOS RIQPAHQ WOLYKTT IHRWSWM CHROLMB XIVOQUE XMFXLNF WBVQVRQ PERGPNS SNCJAHQ LUDZMDU WTRYACX ESJCVOY WIYPZIF ETVOAHQ RLZQAEP XHVCLCQ MVVCHSU RGCPCOU GETLSMM RDLYOUD VIVOZPA OEFYLIZ WTIFJTU SNCZVKU RTYPJAN MNVEIEZ IAKSAHQ THFYLTT ICRWSEZ HEUMLFA VEZNVUX HSRJHWA VDWZYAI LICPPJG WTJEHRQ HAKEOES VEPNHBU REKYVTU GIERPTE GHZAWEP GOIYLRE ENUEOER EIEEZCG JFCTUEE AHVCLCA YNKWLSE WHFPZHM HBIFZHQ HAXLPNE XIKEOEZ MKEPSTS VAJALDF LETZVLY ITRWOAZ HLVLUDA TEEPKTT IDFZYIZ WIUPDAE ROKSPNS FUKOBSF EFROPNS GLVLUIZ KSTSLDG PEKLWEP XOKSLBM GKNLSLM RDEPHRF LEIPHRM WMRWSWA SDVYIOJ MPLWSEP MTFFACM VEWFSLK MTNLZHQ EVZPYTT ENZESOA OEUTASE YRWLJEI SREDTOA XHRDPFR VODMLIZ KHVWKOR XEELUDF LOLROTR YLCJFEF MCFFSDZ XIDLNIZ IAEJVNQ MNKSLBG MLUTUGI LOJEPLX YSVOAHU WHRWSWM CPYZUEX ITRWVNQ INKCBSF IDRMVXF STYPJAN MNVEIEZ IAKSPTH SITPZBQ KAEEVSI ILCLNAU RFIZTAD SUEOAHQ GOIYLRF LEEPETO PAJDJHM RGVLWPD SATSPNS PIBPHTU HESFASF ENUTUGF LEIPDIF LTYPIOJ MNDJOAZ HSKSLNA MSVQLLF JAILDAK MTNLZAE XHFFNHF LEGSVNQ LAUCLAO LEULJRA WSKTTEF SDVWPVQ VSFXLTT MNXEOAF LAUMLEZ AAZEPNS UUZPALK JOITASY SMVYATA FEWZBNP`;
+}
 </script>
+
 </body>
 </html>
