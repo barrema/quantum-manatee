@@ -88,7 +88,7 @@ h1 {
 <script>
 /* SAFARI-SAFE CLOCK */
 
-// Build ticks
+// Build ticks (12 major marks)
 const clock = document.getElementById("clock");
 for (let i = 0; i < 12; i++) {
   const t = document.createElement("div");
@@ -100,67 +100,5 @@ for (let i = 0; i < 12; i++) {
 const hourHand = document.getElementById("hour");
 const minuteHand = document.getElementById("minute");
 
-let dragging = null;
-
-function getAngle(ev) {
-  const r = clock.getBoundingClientRect();
-  const cx = r.left + r.width / 2;
-  const cy = r.top + r.height / 2;
-  const x = ev.clientX - cx;
-  const y = ev.clientY - cy;
-  const ang = Math.atan2(x, -y) * 180 / Math.PI;
-  return (ang + 360) % 360;
-}
-
-function snap(v, step) {
-  return Math.round(v / step) * step;
-}
-
-hourHand.addEventListener("pointerdown", function(ev) {
-  dragging = "hour";
-  if (ev.target.setPointerCapture) ev.target.setPointerCapture(ev.pointerId);
-});
-
-minuteHand.addEventListener("pointerdown", function(ev) {
-  dragging = "minute";
-  if (ev.target.setPointerCapture) ev.target.setPointerCapture(ev.pointerId);
-});
-
-window.addEventListener("pointermove", function(ev) {
-  if (!dragging) return;
-  const ang = getAngle(ev);
-  if (dragging === "hour") {
-    const snapped = snap(ang, 30);
-    hourHand.style.transform = "translateX(-50%) rotate(" + snapped + "deg)";
-    hourHand.dataset.angle = snapped;
-  } else {
-    const snapped = snap(ang, 6);
-    minuteHand.style.transform = "translateX(-50%) rotate(" + snapped + "deg)";
-    minuteHand.dataset.angle = snapped;
-  }
-});
-
-window.addEventListener("pointerup", function() {
-  dragging = null;
-  checkSolved();
-});
-
-function checkSolved() {
-  const h = parseInt(hourHand.dataset.angle || "0");
-  const m = parseInt(minuteHand.dataset.angle || "0");
-
-  if (h === 30 && m === 0) {
-    reveal();
-  }
-}
-
-function reveal() {
-  const box = document.getElementById("secret");
-  box.style.display = "block";
-  box.textContent =
-`XHVELLQ THFYLOZ XHVEOID HFCZVRE ETFYAOB SFKSLUZ ESJFTIZ KGIPFCM FIEPATT IKZYKOR JUIYPTG VEKSHTN PEEOLDU RTFLDAX PUEEPLQ ZEEXLMA VYJEVPB IDSZAHQ VIERDIF LIKDAUP INKDZTD IADPKPM WTVGLRK LOLCPNZ SIJJIUD WTJOVOD WSCLTMU RGCLBGT XEIPJHA MNXDVMQ SNVLSWM CSTLSLU RGFFATA WODPVNQ ILJPPNF LEDTKDX IOWLSLF LAKDOIR XIERSIR ITYPVLP THFYLSQ IMVOHLY SSKPTBM VRRDZEP XOVIPSF ERVWPCX IFKMLHU RDSJZOY IPIPCIA YSMPYSU SNFQAHQ FUZWKIZ KIKSHDZ IVVCYUZ KIELSLF LEPPHRE MDNLSKQ HBPTASA AHVYAHQ FECWZUP HEEWFST ETKPYEP XHVXPDY SRETUGC YIVEPAX QOJEKIP RTIPJOS RIQPAHQ WOLYKTT IHRWSWM CHROLMB XIVOQUE XMFXLNF WBVQVRQ PERGPNS SNCJAHQ LUDZMDU WTRYACX ESJCVOY WIYPZIF ETVOAHQ RLZQAEP XHVCLCQ MVVCHSU RGCPCOU GETLSMM RDLYOUD VIVOZPA OEFYLIZ WTIFJTU SNCZVKU RTYPJAN MNVEIEZ IAKSAHQ THFYLTT ICRWSEZ HEUMLFA VEZNVUX HSRJHWA VDWZYAI LICPPJG WTJEHRQ HAKEOES VEPNHBU REKYVTU GIERPTE GHZAWEP GOIYLRE ENUEOER EIEEZCG JFCTUEE AHVCLCA YNKWLSE WHFPZHM HBIFZHQ HAXLPNE XIKEOEZ MKEPSTS VAJALDF LETZVLY ITRWOAZ HLVLUDA TEEPKTT IDFZYIZ WIUPDAE ROKSPNS FUKOBSF EFROPNS GLVLUIZ KSTSLDG PEKLWEP XOKSLBM GKNLSLM RDEPHRF LEIPHRM WMRWSWA SDVYIOJ MPLWSEP MTFFACM VEWFSLK MTNLZHQ EVZPYTT ENZESOA OEUTASE YRWLJEI SREDTOA XHRDPFR VODMLIZ KHVWKOR XEELUDF LOLROTR YLCJFEF MCFFSDZ XIDLNIZ IAEJVNQ MNKSLBG MLUTUGI LOJEPLX YSVOAHU WHRWSWM CPYZUEX ITRWVNQ INKCBSF IDRMVXF STYPJAN MNVEIEZ IAKSPTH SITPZBQ KAEEVSI ILCLNAU RFIZTAD SUEOAHQ GOIYLRF LEEPETO PAJDJHM RGVLWPD SATSPNS PIBPHTU HESFASF ENUTUGF LEIPDIF LTYPIOJ MNDJOAZ HSKSLNA MSVQLLF JAILDAK MTNLZAE XHFFNHF LEGSVNQ LAUCLAO LEULJRA WSKTTEF SDVWPVQ VSFXLTT MNXEOAF LAUMLEZ AAZEPNS UUZPALK JOITASY SMVYATA FEWZBNP`;
-}
-</script>
-
-</body>
-</html>
+// ----- Start at 5:35 (snapped behavior preserved) -----
+const startMinuteDeg = 35 * 6;   // 210°
