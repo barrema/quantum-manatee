@@ -48,7 +48,7 @@ h1 {
   background: #38bdf8;
   border-radius: 3px;
 
-  /* Restore drag on Safari/iOS */
+  /* Enable drag across Safari/iOS */
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
@@ -99,14 +99,18 @@ for (let i = 0; i < 12; i++) {
 const hourHand = document.getElementById("hour");
 const minuteHand = document.getElementById("minute");
 
-// ----- Start at 5:35 (snapped hour hand to 5) -----
+// Helpers
+const norm = (deg) => ((deg % 360) + 360) % 360;   // normalize to [0,360)
+const snap = (v, step) => Math.round(v / step) * step;
+
+// ----- Start at 5:35 (hour snapped to 5; minute exact) -----
 const startMinuteDeg = 35 * 6;   // 210°
 const startHourDeg   = 5 * 30;   // 150°
 hourHand.style.transform   = "translateX(-50%) rotate(" + startHourDeg + "deg)";
 minuteHand.style.transform = "translateX(-50%) rotate(" + startMinuteDeg + "deg)";
 hourHand.dataset.angle = String(startHourDeg);
 minuteHand.dataset.angle = String(startMinuteDeg);
-// ---------------------------------------------------
+// ------------------------------------------------------------
 
 let dragging = null;
 
@@ -117,16 +121,12 @@ function getAngle(ev) {
   const x = ev.clientX - cx;
   const y = ev.clientY - cy;
   const ang = Math.atan2(x, -y) * 180 / Math.PI; // 0° at 12 o'clock, clockwise
-  return (ang + 360) % 360;
-}
-
-function snap(v, step) {
-  return Math.round(v / step) * step;
+  return norm(ang);
 }
 
 function onPointerDown(which) {
   return function(ev) {
-    ev.preventDefault(); // stop scroll/zoom text selection on iOS Safari
+    ev.preventDefault();
     dragging = which;
     if (ev.target.setPointerCapture) ev.target.setPointerCapture(ev.pointerId);
     (which === "hour" ? hourHand : minuteHand).classList.add("dragging");
@@ -136,15 +136,21 @@ function onPointerDown(which) {
 function onPointerMove(ev) {
   if (!dragging) return;
   const ang = getAngle(ev);
+
   if (dragging === "hour") {
+    // Hour hand: snap to hour marks (30°)
     const snapped = snap(ang, 30);
     hourHand.style.transform = "translateX(-50%) rotate(" + snapped + "deg)";
-    hourHand.dataset.angle = snapped;
+    hourHand.dataset.angle = String(snapped);
   } else {
-    const snapped = snap(ang, 6);
+    // Minute hand: snap to 5-minute increments (30° steps)
+    const snapped = snap(ang, 30);
     minuteHand.style.transform = "translateX(-50%) rotate(" + snapped + "deg)";
-    minuteHand.dataset.angle = snapped;
+    minuteHand.dataset.angle = String(snapped);
   }
+
+  // Also check while moving so it can reveal immediately
+  checkSolved();
 }
 
 function onPointerUpOrCancel() {
@@ -161,9 +167,13 @@ document.addEventListener("pointerup", onPointerUpOrCancel);
 document.addEventListener("pointercancel", onPointerUpOrCancel);
 
 function checkSolved() {
-  const h = parseInt(hourHand.dataset.angle || "0", 10);
-  const m = parseInt(minuteHand.dataset.angle || "0", 10);
-  if (h === 30 && m === 0) reveal();
+  const h = norm(parseFloat(hourHand.dataset.angle || "0"));
+  const m = norm(parseFloat(minuteHand.dataset.angle || "0"));
+
+  // Treat 360 as 0 by normalizing, then compare
+  if (h === 30 && m === 0) {
+    reveal();
+  }
 }
 
 function reveal() {
