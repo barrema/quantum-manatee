@@ -47,17 +47,16 @@ h1 {
   transform-origin: bottom center;
   background: #38bdf8;
   border-radius: 3px;
-}
 
-.hand.hour {
-  width: 8px;
-  height: 70px;
+  /* Restore drag on Safari/iOS */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: grab;
 }
-
-.hand.minute {
-  width: 5px;
-  height: 100px;
-}
+.hand.hour { width: 8px;  height: 70px; }
+.hand.minute { width: 5px; height: 100px; }
+.hand.dragging { cursor: grabbing; }
 
 #secret {
   display: none;
@@ -86,9 +85,9 @@ h1 {
 <div id="secret"></div>
 
 <script>
-/* SAFARI-SAFE CLOCK */
+/* SIMPLE, SAFARI-SAFE ANALOG CLOCK */
 
-// Build ticks (12 major marks)
+// Build 12 ticks
 const clock = document.getElementById("clock");
 for (let i = 0; i < 12; i++) {
   const t = document.createElement("div");
@@ -100,5 +99,84 @@ for (let i = 0; i < 12; i++) {
 const hourHand = document.getElementById("hour");
 const minuteHand = document.getElementById("minute");
 
-// ----- Start at 5:35 (snapped behavior preserved) -----
+// ----- Start at 5:35 (snapped hour hand to 5) -----
 const startMinuteDeg = 35 * 6;   // 210°
+const startHourDeg   = 5 * 30;   // 150°
+hourHand.style.transform   = "translateX(-50%) rotate(" + startHourDeg + "deg)";
+minuteHand.style.transform = "translateX(-50%) rotate(" + startMinuteDeg + "deg)";
+hourHand.dataset.angle = String(startHourDeg);
+minuteHand.dataset.angle = String(startMinuteDeg);
+// ---------------------------------------------------
+
+let dragging = null;
+
+function getAngle(ev) {
+  const r = clock.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+  const x = ev.clientX - cx;
+  const y = ev.clientY - cy;
+  const ang = Math.atan2(x, -y) * 180 / Math.PI; // 0° at 12 o'clock, clockwise
+  return (ang + 360) % 360;
+}
+
+function snap(v, step) {
+  return Math.round(v / step) * step;
+}
+
+function onPointerDown(which) {
+  return function(ev) {
+    ev.preventDefault(); // stop scroll/zoom text selection on iOS Safari
+    dragging = which;
+    if (ev.target.setPointerCapture) ev.target.setPointerCapture(ev.pointerId);
+    (which === "hour" ? hourHand : minuteHand).classList.add("dragging");
+  };
+}
+
+function onPointerMove(ev) {
+  if (!dragging) return;
+  const ang = getAngle(ev);
+  if (dragging === "hour") {
+    const snapped = snap(ang, 30);
+    hourHand.style.transform = "translateX(-50%) rotate(" + snapped + "deg)";
+    hourHand.dataset.angle = snapped;
+  } else {
+    const snapped = snap(ang, 6);
+    minuteHand.style.transform = "translateX(-50%) rotate(" + snapped + "deg)";
+    minuteHand.dataset.angle = snapped;
+  }
+}
+
+function onPointerUpOrCancel() {
+  if (!dragging) return;
+  (dragging === "hour" ? hourHand : minuteHand).classList.remove("dragging");
+  dragging = null;
+  checkSolved();
+}
+
+hourHand.addEventListener("pointerdown", onPointerDown("hour"));
+minuteHand.addEventListener("pointerdown", onPointerDown("minute"));
+document.addEventListener("pointermove", onPointerMove);
+document.addEventListener("pointerup", onPointerUpOrCancel);
+document.addEventListener("pointercancel", onPointerUpOrCancel);
+
+function checkSolved() {
+  const h = parseInt(hourHand.dataset.angle || "0", 10);
+  const m = parseInt(minuteHand.dataset.angle || "0", 10);
+  if (h === 30 && m === 0) reveal();
+}
+
+function reveal() {
+  const box = document.getElementById("secret");
+  if (box.style.display === "block") return;
+  box.style.display = "block";
+  box.textContent =
+`A: "so you think you can do it?"
+B: "yeah, give me 7 experienced codebreakers and we'll crack it"
+
+XHVELLQ THFYLOZ XHVEOID HFCZVRE ETFYAOB SFKSLUZ ESJFTIZ KGIPFCM FIEPATT IKZYKOR JUIYPTG VEKSHTN PEEOLDU RTFLDAX PUEEPLQ ZEEXLMA VYJEVPB IDSZAHQ VIERDIF LIKDAUP INKDZTD IADPKPM WTVGLRK LOLCPNZ SIJJIUD WTJOVOD WSCLTMU RGCLBGT XEIPJHA MNXDVMQ SNVLSWM CSTLSLU RGFFATA WODPVNQ ILJPPNF LEDTKDX IOWLSLF LAKDOIR XIERSIR ITYPVLP THFYLSQ IMVOHLY SSKPTBM VRRDZEP XOVIPSF ERVWPCX IFKMLHU RDSJZOY IPIPCIA YSMPYSU SNFQAHQ FUZWKIZ KIKSHDZ IVVCYUZ KIELSLF LEPPHRE MDNLSKQ HBPTASA AHVYAHQ FECWZUP HEEWFST ETKPYEP XHVXPDY SRETUGC YIVEPAX QOJEKIP RTIPJOS RIQPAHQ WOLYKTT IHRWSWM CHROLMB XIVOQUE XMFXLNF WBVQVRQ PERGPNS SNCJAHQ LUDZMDU WTRYACX ESJCVOY WIYPZIF ETVOAHQ RLZQAEP XHVCLCQ MVVCHSU RGCPCOU GETLSMM RDLYOUD VIVOZPA OEFYLIZ WTIFJTU SNCZVKU RTYPJAN MNVEIEZ IAKSAHQ THFYLTT ICRWSEZ HEUMLFA VEZNVUX HSRJHWA VDWZYAI LICPPJG WTJEHRQ HAKEOES VEPNHBU REKYVTU GIERPTE GHZAWEP GOIYLRE ENUEOER EIEEZCG JFCTUEE AHVCLCA YNKWLSE WHFPZHM HBIFZHQ HAXLPNE XIKEOEZ MKEPSTS VAJALDF LETZVLY ITRWOAZ HLVLUDA TEEPKTT IDFZYIZ WIUPDAE ROKSPNS FUKOBSF EFROPNS GLVLUIZ KSTSLDG PEKLWEP XOKSLBM GKNLSLM RDEPHRF LEIPHRM WMRWSWA SDVYIOJ MPLWSEP MTFFACM VEWFSLK MTNLZHQ EVZPYTT ENZESOA OEUTASE YRWLJEI SREDTOA XHRDPFR VODMLIZ KHVWKOR XEELUDF LOLROTR YLCJFEF MCFFSDZ XIDLNIZ IAEJVNQ MNKSLBG MLUTUGI LOJEPLX YSVOAHU WHRWSWM CPYZUEX ITRWVNQ INKCBSF IDRMVXF STYPJAN MNVEIEZ IAKSPTH SITPZBQ KAEEVSI ILCLNAU RFIZTAD SUEOAHQ GOIYLRF LEEPETO PAJDJHM RGVLWPD SATSPNS PIBPHTU HESFASF ENUTUGF LEIPDIF LTYPIOJ MNDJOAZ HSKSLNA MSVQLLF JAILDAK MTNLZAE XHFFNHF LEGSVNQ LAUCLAO LEULJRA WSKTTEF SDVWPVQ VSFXLTT MNXEOAF LAUMLEZ AAZEPNS UUZPALK JOITASY SMVYATA FEWZBNP`;
+}
+</script>
+
+</body>
+</html>
